@@ -1,0 +1,56 @@
+import "VTSample_w1-wip1.csar" : "_definitions/steIgeneral__VTSample_w1-wip1.tosca" [node,type,region];
+import <function_conditions.cdl>;
+
+$X.host_node := $X.requirements[$Y].host.node;
+
+regions = {
+  eu-west-1,
+  eu-west-2,
+  cn-north-1,
+  us-east-1
+};
+
+eu-west-1.hosted_in = ireland;
+eu-west-2.hosted_in = uk;
+cn-north-1.hosted_in = china;
+us-east-1.hosted_in = us;
+
+all_countries = { uk, us, canada, china, india, ireland };
+supported_countries = { uk, us, canada, china, india };
+uk.willing = { uk, us, canada, china, india, ireland};
+us.willing = { us };
+canada.willing = { uk, us, canada };
+china.willing = { china };
+india.willing = { india, uk, us };
+
+thumbnail_buckets = { AwsS3Bucket_0, AwsS3Bucket_1 };
+
+create_thumbnails.pre_conditions = {
+  supported_countries.includes(input.country_of_origin)
+};
+
+create_thumbnails.post_conditions = {
+  EXISTS($B : thumbnail_buckets, $B.storage.includes(input.thumbnail))
+};
+
+create_thumbnails.invariant_conditions = {
+  FORALL($B : thumbnail_buckets,
+    $B.storage.includes(input.thumbnail)
+    =>
+    input.country_of_origin.willing.includes($B.host_node.properties.region.hosted_in)
+  )
+};
+
+
+functions = { create_thumbnails };
+
+dynamic_variables = { AwsS3Bucket_0.storage, AwsS3Bucket_1.storage };
+runtime_variable_set dynamic_variables;
+
+@depth 5;
+
+@show input.country_of_origin;
+
+platforms = { AwsPlatform_0, AwsPlatform_1, AwsPlatform_2, AwsPlatform_3 };
+@definable $X.host.node, platforms;
+
